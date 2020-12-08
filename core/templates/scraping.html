@@ -1,0 +1,113 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Scraping {% endblock %} 
+
+<!-- Specific Plugin CSS goes HERE -->
+{% block plugin_stylesheets %}
+
+  <!-- Plugin css for this page -->
+  <link rel="stylesheet" href="/static/assets/vendors/select2/select2.min.css">
+  <link rel="stylesheet" href="/static/assets/vendors/select2-bootstrap-theme/select2-bootstrap.min.css">
+  <!-- End plugin css for this page -->
+
+{% endblock plugin_stylesheets %}
+
+<!-- Specific CSS goes HERE -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+  <div class="content-wrapper">
+    <div class="page-header">
+      <h3 class="page-title">Scraping</h3>
+    </div>
+    <div class="row">
+      <div class="col-md-12 grid-margin stretch-card">
+        <div class="card">
+          <div class="card-body">
+            <h4 class="card-title">Scraping Twitter</h4>
+            <p class="card-description"> Ambil data sesuai keywords! </p>
+            <form class="forms-sample" method="POST" action="{% url 'scrape' %}" >
+              {% csrf_token %}
+              <div class="form-group">
+                <label for="count">Total Scraping</label>
+                <input type="number" class="form-control" id="count" name="count" placeholder="Total" value="1">
+              </div>
+              <div class="form-group">
+                <label for="keyword">Keyword</label>
+                <input type="text" class="form-control" name="keyword" id="keyword" placeholder="Keyword" requireds>
+              </div>
+              <button type="submit" class="btn btn-primary mr-2">Submit</button>
+            </form>
+            {{ tweepy_error }}
+          </div>
+        </div>
+      </div>
+      {% if tw is not None %}
+      <div class="col-lg-12 grid-margin stretch-card">
+        <div class="card">
+          <div class="card-body">
+            <div class="row  d-flex justify-content-between flex-nowrap">
+              <h4 class="card-title">Hasil Scraping</h4>
+              <button type="submit" onclick="location.href='/scrape/download'" class="btn btn-success mr-2">
+                <i class="mdi mdi-file-document-box"></i>Download</button>
+            </div>
+            </p>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Username.</th>
+                    <th>Tweet</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for f in tw %}
+                  <tr>
+                    <td>{{f.created_at}}</td>
+                    <td>{{f.user.screen_name}}</td>
+                    <td>{{f.full_text}}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    <a href="#" class="act-btn" data-toggle="modal" data-target="#exampleModal"><i class="mdi mdi-help"></i></a>
+  </div>
+  <!-- Modal -->
+  <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Scraping</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <h5>Web Scraping </h5>
+          <p class="text-justify"> merupakan suatu proses ekstraksi data dari sebuah website secara otomatis. Web scraping melibatkan locating data (lokasi data) dan kemudian mengekstraksinya. Proses web scraping tidak melakukan copy-paste, tetapi ia langsung mengambil data dengan tepat dan akurat. Untuk melakukan scraping sebenarnya tidak harus dilakukan melalui web saja tetapi dapat juga dilakukan pada varian data lainnya.</p>
+          <div>
+            <p class="text-danger">Lakukan scraping antara 1 - 1000 untuk menghindari hal yang tidak di inginkan.</p>
+          </div>
+          
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}
+
+<!-- Specific Plugin JS goes HERE  -->
+{% block plugin_javascripts %}{% endblock plugin_javascripts %}
+
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}{% endblock javascripts %}
