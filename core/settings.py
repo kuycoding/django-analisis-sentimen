@@ -7,7 +7,6 @@ Copyright (c) 2019 - present AppSeed.us
 import os
 from decouple import config
 from unipath import Path
-import django_heroku
 import dj_database_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -130,5 +129,3 @@ STATICFILES_DIRS = (
 )
 #############################################################
 #############################################################
-# Mengaktifkan Django-Heroku.
-django_heroku.settings(locals())
