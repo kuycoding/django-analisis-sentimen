@@ -9,8 +9,7 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from django import template
 from django.template.defaultfilters import stringfilter
-nltk.download()
-
+nltk.download('stopwords')
 register = template.Library()
 
 @register.simple_tag
