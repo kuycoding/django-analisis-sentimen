@@ -195,11 +195,12 @@ def download_preprocessing(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="dataClean.csv"'
 
-    header = ['date','username','text','clean_text']
+    header = ['keyword','date','photo','username','tweet','clean_text']
     df[header].to_csv(path_or_buf=response,index=False)
     
     return response
 
+@login_required(login_url="/login/")
 def klasifikasi(request):
     context = {}
     context['segment'] = 'Klasifikasi'
@@ -281,6 +282,7 @@ def visualisasi(request):
     html_template = loader.get_template( 'visualisasi.html' )
     return HttpResponse(html_template.render(context, request))
 
+@login_required(login_url="/login/")
 def visualize(request):
     context = {}
     context['segment'] = 'Visualisasi'
@@ -355,6 +357,7 @@ def visualize(request):
     html_template = loader.get_template( 'visualize.html' )
     return HttpResponse(html_template.render(context, request))
 
+@login_required(login_url="/login/")
 def model_predic(request):
     context = {}
     context['segment'] = 'Model Predic'
@@ -410,14 +413,6 @@ def model_predic(request):
                 # context['tweet'] = clean_text_isi
                 # context['clean'] = return_setence_isi
                 # context['predic'] = predic_result
-            response = HttpResponse(content_type='text/csv')
-            response['Content-Disposition'] = 'attachment; filename="dataPredic.csv"'
-
-            writer = csv.writer(response, lineterminator='\n')
-            writer.writerow(['tweet', 'clean_text', 'class'])
-            writer.writerow([clean_text_isi, return_setence_isi, predic_result])
-
-            return response
             
     else:
         print(request, f'No file to process! Please upload a file to process.')
