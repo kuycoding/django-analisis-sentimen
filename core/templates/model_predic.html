@@ -50,9 +50,13 @@
         <div class="card">
           <div class="card-body">
             <div class="row  d-flex justify-content-between flex-nowrap">
-              <h4 class="card-title">Hasil Preprocessing</h4>
-              <button type="submit" onclick="location.href='/model/download'" class="btn btn-success mr-2">
-                <i class="mdi mdi-file-document-box"></i>Download</button>
+              <h4 class="card-title">Hasil Pemodelan</h4>
+              <div class="row">
+                <button type="submit" onclick="location.href='/model/download'" class="btn btn-success mr-2">
+                  <i class="mdi mdi-download"></i></button>
+                <button type="submit" onclick="location.href='/model/visualisasi'" class="btn btn-success mr-2">
+                  <i class="mdi mdi-file-document-box">Visualisasi</i></button>
+              </div>
             </div>
             </p>
 
@@ -62,15 +66,17 @@
                   <tr>
                     <th>Tweet</th>
                     <th>Clean</th>
-                    <th>predic</th>
+                    <th>Label</th>
                   </tr>
                 </thead>
                 <tbody>
+                  {% for i in predic %}
                   <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td>{{ i.tweet }}</td>
+                    <td>{{ i.clean_text }}</td>
+                    <td>{{ i.class }}</td>
                   </tr>
+                  {% endfor %}
                 </tbody>
               </table>
             </div>

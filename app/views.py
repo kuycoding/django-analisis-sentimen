@@ -23,6 +23,7 @@ import pickle
 import time
 import io
 import os
+import re
 import matplotlib
 matplotlib.use('Agg')
 import multiprocessing
@@ -275,13 +276,6 @@ def klasifikasi(request):
     html_template = loader.get_template( 'klasifikasi.html' )
     return HttpResponse(html_template.render(context, request))
 
-def visualisasi(request):
-    context = {}
-    context['segment'] = 'Visualisasi'
-
-    html_template = loader.get_template( 'visualisasi.html' )
-    return HttpResponse(html_template.render(context, request))
-
 @login_required(login_url="/login/")
 def visualize(request):
     context = {}
@@ -380,9 +374,9 @@ def model_predic(request):
             with io.open('app/tfidf_tranform1.pkl', 'rb') as t:
                 tfidf = pickle.load(t)
 
-            clean_text_isi = []
-            return_setence_isi = []
-            predic_result = []
+            tweet = []
+            clean_text = []
+            clas = []
             for i, line in dfs.iterrows():
                 isi = line[4]
                 print(isi)
@@ -410,9 +404,19 @@ def model_predic(request):
                 predic_result = model.predict(transform_tfidf)
                 print(predic_result)
 
-                # context['tweet'] = clean_text_isi
-                # context['clean'] = return_setence_isi
-                # context['predic'] = predic_result
+                tweet.append(isi)
+                clean_text.append(return_setence_isi)
+                clas.append(predic_result)
+
+            df['tweet'] = tweet
+            df['clean_text'] = clean_text
+            df['class'] = clas
+            result = pd.concat([df['keyword'],df['date'],df['photo'],df['username'],df['tweet'],df['clean_text'],df['class'] ], axis=1, join='inner')
+            # to json
+            json_records = result.reset_index().to_json(orient = 'records')
+            data = []
+            data = json.loads(json_records)
+            context['predic'] = data 
             
     else:
         print(request, f'No file to process! Please upload a file to process.')
@@ -420,9 +424,89 @@ def model_predic(request):
     html_template = loader.get_template( 'model_predic.html' )
     return HttpResponse(html_template.render(context, request))
 
+def visualisasi(request):
+    context = {}
+    context['segment'] = 'Visualisasi'
+
+    df['polaritas'] = df['class'].apply(Klasifikasi_NB.convertToPolarity)
+    df['polaritas'] = df['polaritas'].astype(str)
+    df['class'] = df['class'].apply(Klasifikasi_NB.convert1)
+    global sentiment_count
+    sentiment_count = df['polaritas'].value_counts()
+    sentiment_count = pd.DataFrame({'Sentiment': sentiment_count.index, 'Tweets': sentiment_count.values})
+    # random sentiment tweet
+    
+    random_pos = df.loc[df['polaritas'] == 'positif'].sample(n=2, replace = True)
+    context['pos_uname'] = random_pos['username'].to_string(index=False)
+    context['pos_date'] = random_pos['date'].to_string(index=False)
+    context['pos_tweet'] = random_pos['tweet'].to_string(index=False)
+    json_records = random_pos.reset_index().to_json(orient = 'records')
+    data = []
+    data = json.loads(json_records)
+    context['p'] = data 
+
+    random_net = df.loc[df['polaritas'] == 'netral'].sample(n=2, replace = True)
+    context['net_uname'] = random_net['username'].to_string(index=False)
+    context['net_date'] = random_net['date'].to_string(index=False)
+    context['net_tweet'] = random_net['tweet'].to_string(index=False)
+    json_records = random_net.reset_index().to_json(orient = 'records')
+    data = []
+    data = json.loads(json_records)
+    context['net'] = data 
+
+    random_neg = df.loc[df['polaritas'] == 'negatif'].sample(n=2, replace = True)
+    context['neg_uname'] = random_neg['username'].to_string(index=False)
+    context['neg_date'] = random_neg['date'].to_string(index=False)
+    context['neg_tweet'] = random_neg['tweet'].to_string(index=False)
+    json_records = random_neg.reset_index().to_json(orient = 'records')
+    data = []
+    data = json.loads(json_records)
+    context['neg'] = data 
+
+    # bar
+    graph = px.bar(sentiment_count, x='Sentiment', y='Tweets', color='Tweets', height=500)
+    graph.update_layout(font_color="#e6e6e6", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    div_bar = opy.plot(graph, output_type='div')
+    context['bar'] = div_bar
+
+    # pie
+    fig_2 = px.pie(sentiment_count, values='Tweets', names='Sentiment')
+    fig_2.update_layout(font_color="#e6e6e6", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', hoverlabel=dict(font=dict(family='sans-serif')))
+    div_pie = opy.plot(fig_2, output_type='div')
+    context['pie'] = div_pie
+
+    # bar-bar
+    choice_data = df
+    fig_0 = px.histogram(choice_data, x='keyword', y='polaritas',
+        histfunc='count', color='polaritas',
+        facet_col='polaritas', labels={'polaritas': 'tweets'},
+        height=500)
+    fig_0.update_layout(font_color="#e6e6e6", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    div_fig0 = opy.plot(fig_0, output_type='div')
+    context['fig0'] = div_fig0
+    
+    # wordcloud
+    w = ' '.join([text for text in df['clean_text'][df['polaritas'] == 'negatif']])
+    wordcloud = WordCloud(stopwords=STOPWORDS, width=800, height=500, background_color="black", random_state=21, max_font_size=110).generate(w)
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis("off")
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', facecolor='k', bbox_inches='tight')
+    buffer.seek(0)
+    strings = base64.b64encode(buffer.getvalue())
+    buffer.close()
+    image_64 = strings.decode('utf-8')
+    context['wc_1'] = image_64
+
+    html_template = loader.get_template( 'visualize.html' )
+    return HttpResponse(html_template.render(context, request))
+
 def download_model(request):
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename=modelPredic.csv'
+    response['Content-Disposition'] = 'attachment; filename="modelPredic.csv"'
 
+    header = ['keyword','date','photo','username','tweet','clean_text','class']
+    df[header].to_csv(path_or_buf=response,index=False)
+    
     return response
     

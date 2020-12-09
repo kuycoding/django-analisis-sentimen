@@ -22,7 +22,7 @@ urlpatterns = [
     path('preprocessing', views.preprocessing, name="preprocessing"),
     path('preprocessing/download', views.download_preprocessing),
     path('klasifikasi', views.klasifikasi, name="klasifikasi"),
-    path('visualisasi', views.visualisasi, name="visualisasi"),
+    path('model/visualisasi', views.visualisasi, name="visualisasi"),
     path('model_predic', views.model_predic, name="model predic"),
     path('model/download', views.download_model),
     path('visualize', views.visualize, name="visualize")
