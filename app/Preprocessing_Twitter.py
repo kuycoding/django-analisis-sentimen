@@ -10,6 +10,7 @@ from nltk.tokenize import word_tokenize
 from django import template
 from django.template.defaultfilters import stringfilter
 nltk.download('stopwords')
+nltk.download('punkt')
 register = template.Library()
 
 @register.simple_tag
