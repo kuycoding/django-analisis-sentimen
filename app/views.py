@@ -37,6 +37,7 @@ import matplotlib.pyplot as plt
 import nltk
 
 from sklearn import model_selection
+from sklearn.metrics import confusion_matrix
 from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.naive_bayes import MultinomialNB
@@ -216,7 +217,13 @@ def klasifikasi(request):
             
             # ubah ke polaritas
             df['polaritas'] = df['class'].apply(Klasifikasi_NB.convert)
-                        
+            print("total polaritas ")
+            pol = df['polaritas'].value_counts().to_frame()
+            json_records = pol.reset_index().to_json(orient = 'records')
+            jml = []
+            jml = json.loads(json_records)
+            context['jml'] = jml
+            print(jml)
             x = df['text']
             y = df['polaritas']
 
@@ -262,6 +269,7 @@ def klasifikasi(request):
             data = []
             data = json.loads(json_records)
             context['klasifikasi'] = data
+            # akurasi
             global accuracy
             accuracy = context['accuracy'] = accuracy_score(y_test, predic)*100
 
@@ -269,6 +277,18 @@ def klasifikasi(request):
             data = []
             data = json.loads(json_records)
             context['k'] = data 
+
+            # Confusion matrix
+            unique_label = np.unique([y_test, predic])
+            cm = confusion_matrix(y_test, predic,labels=unique_label)
+            matrix = pd.DataFrame(cm, index=['{:}'.format(x) for x in unique_label],
+                                columns=['{:}'.format(x) for x in unique_label])
+            matrix.rename(columns={'1':'pos','0':'net','-1':'neg'}, inplace=True)
+            print(matrix)
+            json_records = matrix.reset_index().to_json(orient = 'records')
+            data = []
+            data = json.loads(json_records)
+            context['matrix'] = data 
     else:
         print(request, f'No file to process! Please upload a file to process.')
 
@@ -362,8 +382,7 @@ def model_predic(request):
             global df
             df = pd.read_csv(testF,encoding='utf-8', dtype=str)
             context['df'] = df
-            dfs = df.astype(str)
-            print(dfs)
+            
 
             with io.open('app/model_analyze1.pkl', 'rb') as handle:
                 model = pickle.load(handle)
@@ -377,7 +396,7 @@ def model_predic(request):
             tweet = []
             clean_text = []
             clas = []
-            for i, line in dfs.iterrows():
+            for i, line in df.iterrows():
                 isi = line[4]
                 print(isi)
             
