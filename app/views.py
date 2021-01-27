@@ -64,7 +64,7 @@ def error_404(request, exception=None):
 def error_500(request):
     return render(request,'core/templates/page-500.html')
 
-# #@login_required(login_url="/login/")
+@login_required(login_url="/login/")
 def index(request):
     
     context = {}
@@ -206,7 +206,7 @@ def index(request):
     html_template = loader.get_template( 'index.html' )
     return HttpResponse(html_template.render(context, request))
 
-#@login_required(login_url="/login/")
+@login_required(login_url="/login/")
 def pages(request):
     context = {}
     # All resource paths end in .html.
@@ -229,7 +229,7 @@ def pages(request):
         html_template = loader.get_template( 'page-500.html' )
         return HttpResponse(html_template.render(context, request))
 
-#@login_required(login_url="/login/")
+@login_required(login_url="/login/")
 def scraping(request):
     context = {}
     context['segment'] = 'scraping'
@@ -237,7 +237,7 @@ def scraping(request):
     html_template = loader.get_template( 'scraping.html' )
     return HttpResponse(html_template.render(context, request))
 
-#@login_required(login_url="/login/")
+@login_required(login_url="/login/")
 def scrape(request):
     context = {}
     context['segment'] = 'scraping'
@@ -278,7 +278,7 @@ def scrape(request):
     html_template = loader.get_template( 'scraping.html' )
     return HttpResponse(html_template.render(context, request))
 
-#@login_required(login_url="/login/")
+@login_required(login_url="/login/")
 def download_scrape(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="dataScrape.csv"'
@@ -287,7 +287,7 @@ def download_scrape(request):
     df[header].to_csv(path_or_buf=response,index=False)    
     return response
 
-#@login_required(login_url="/login/")
+@login_required(login_url="/login/")
 def preprocessing(request):
     context = {}
     context['segment'] = 'Preprocessing'
@@ -333,7 +333,7 @@ def download_preprocessing(request):
     
     return response
 
-#@login_required(login_url="/login/")
+@login_required(login_url="/login/")
 def klasifikasi(request):
     context = {}
     context['segment'] = 'Klasifikasi'
@@ -430,7 +430,7 @@ def klasifikasi(request):
     html_template = loader.get_template( 'klasifikasi.html' )
     return HttpResponse(html_template.render(context, request))
 
-#@login_required(login_url="/login/")
+@login_required(login_url="/login/")
 def visualize(request):
     context = {}
     context['segment'] = 'Visualisasi'
@@ -506,7 +506,7 @@ def visualize(request):
     html_template = loader.get_template( 'visualize.html' )
     return HttpResponse(html_template.render(context, request))
 
-#@login_required(login_url="/login/")
+@login_required(login_url="/login/")
 def model_predic(request):
     context = {}
     context['segment'] = 'Model Predic'
