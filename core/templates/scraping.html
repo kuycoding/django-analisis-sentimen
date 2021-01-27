@@ -57,8 +57,9 @@
               <table class="table">
                 <thead>
                   <tr>
-                    <th>Tanggal</th>
-                    <th>Username.</th>
+                    <th>Date</th>
+                    <th>Photo</th>
+                    <th>Username</th>
                     <th>Tweet</th>
                   </tr>
                 </thead>
@@ -66,6 +67,7 @@
                   {% for f in tw %}
                   <tr>
                     <td>{{f.created_at}}</td>
+                    <td><img src="{{ f.user.profile_image_url }}" alt="image" class="rounded-circle" /></td>
                     <td>{{f.user.screen_name}}</td>
                     <td>{{f.full_text}}</td>
                   </tr>

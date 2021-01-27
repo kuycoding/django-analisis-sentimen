@@ -21111,3 +21111,8 @@ div.tagsinput {
   background: #ffbd3a;
   color: white;
 }
+
+.fit-image{
+width: 100%;
+object-fit: cover;
+}

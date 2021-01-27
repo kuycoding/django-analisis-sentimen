@@ -64,16 +64,16 @@
               <table class="table">
                 <thead>
                   <tr>
+                    <th>Photo</th>
                     <th>Tweet</th>
-                    <th>Clean</th>
                     <th>Label</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for i in predic %}
                   <tr>
+                    <td><img src="{{ i.photo }}" alt="image" class="rounded-circle" /></td>
                     <td>{{ i.tweet }}</td>
-                    <td>{{ i.clean_text }}</td>
                     <td>{{ i.class }}</td>
                   </tr>
                   {% endfor %}

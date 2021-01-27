@@ -141,16 +141,25 @@
                   <table class="table table-bordered">
                     <thead>
                       <tr>
-                        <th> </th>
+                        <th colspan="2"></th>
+                        <th colspan="3" class="text-center">Nilai Sebenarnya</th>
+                      </tr>
+                    </thead>
+                    <thead>
+                      <tr>
+                        <th colspan="2"></th>
                         <th> negatif </th>
                         <th> netral </th>
                         <th> positif </th>
                       </tr>
                     </thead>
                     <tbody>
+                      <tr>
+                        <td rowspan="4">Prediksi</td>
+                      </tr>
                       {% for i in matrix %}
                       <tr>
-                        <td> {{ i.index }} </td>
+                        <td class="bold"> {{ i.index }} </td>
                         <td> {{ i.neg }}</td>
                         <td> {{ i.net }}</td>
                         <td> {{ i.pos }} </td>

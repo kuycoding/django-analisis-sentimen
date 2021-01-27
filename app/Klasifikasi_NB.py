@@ -25,9 +25,9 @@ def convert(polarity):
         return -1
 
 def convert1(polarity):
-    if polarity == "[1]":
+    if polarity == [1]:
         return 1
-    elif polarity == "[0]":
+    elif polarity == [0]:
         return 0
     else:
         return -1
@@ -36,6 +36,14 @@ def convertToPolarity(polarity):
     if polarity == [1]:
         return 'positif'
     elif polarity == [0]:
+        return 'netral'
+    else:
+        return 'negatif'
+
+def convert2(polarity):
+    if polarity == 1:
+        return 'positif'
+    elif polarity == 0:
         return 'netral'
     else:
         return 'negatif'

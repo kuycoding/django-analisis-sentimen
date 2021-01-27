@@ -47,6 +47,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score
+from datetime import datetime
 
 consumer_key = "x9zuaTU1HbDErb9amFHGyY2kY"
 consumer_secret = "6tZlXskc8QD9f8j9FthqZzLFHN6E2aH1nINfMlqJu2pWg3MsEc"
@@ -63,16 +64,149 @@ def error_404(request, exception=None):
 def error_500(request):
     return render(request,'core/templates/page-500.html')
 
-@login_required(login_url="/login/")
+# #@login_required(login_url="/login/")
 def index(request):
     
     context = {}
     context['segment'] = 'index'
+    keywords = "indihome"
+    filterKey = " -filter:retweets"
+    counts = "10"
+    tweet = context['tweet'] = tweepy.Cursor(api.search, q=keywords + filterKey, lang="in", tweet_mode='extended').items(int(counts))
+    json_data = [r._json for r in tweet]
+    df = pd.json_normalize(json_data)
+    df['keyword'] = keywords
+    df['created_at'] = pd.to_datetime(df['created_at'], format='%Y%m%d', errors='ignore')
+    df.rename(columns={'created_at':'date','user.profile_image_url':'photo','user.screen_name':'username','full_text':'tweet'}, inplace=True)
+    print(df)
+
+    # tabel 
+    json_records = df.reset_index().to_json(orient = 'records')
+    data = []
+    data = json.loads(json_records)
+    context['tweet'] = data
+
+    # sentimen analisis
+    with io.open('app/model_analyze1.pkl', 'rb') as handle:
+        model = pickle.load(handle)
+
+    with io.open('app/count_vectorize1.pkl', 'rb') as h:
+        cvec = pickle.load(h)
+   
+    with io.open('app/tfidf_tranform1.pkl', 'rb') as t:
+        tfidf = pickle.load(t)
+
+    tweet = []
+    clean_text = []
+    clas = []
+    for i, line in df.iterrows():
+        isi = line[3]
+        print(isi)
+
+        #  preprocessing
+        clean_text_isi = Preprocessing_Twitter.clean(isi)
+        print(clean_text_isi)
+        remove_number_isi = Preprocessing_Twitter.remove_number(clean_text_isi)
+        remove_punc_isi = Preprocessing_Twitter.remove_punctuation(remove_number_isi)
+        remove_single_char_isi = Preprocessing_Twitter.remove_singl_char(remove_punc_isi)
+        remove_whitespace_LT_isi = Preprocessing_Twitter.remove_whitespace_LT(remove_single_char_isi)
+        remove_whitespace_multiple_isi = Preprocessing_Twitter.remove_whitespace_multiple(remove_whitespace_LT_isi)
+        casefolding_isi = Preprocessing_Twitter.casefolding(remove_whitespace_multiple_isi)
+        tokenize_isi = Preprocessing_Twitter.tokenize(casefolding_isi)
+        stopword_isi = Preprocessing_Twitter.remove_stopword(tokenize_isi)
+        stemming_isi = Preprocessing_Twitter.stemming(stopword_isi)
+        return_setence_isi = Preprocessing_Twitter.return_setence(stemming_isi)
+        print(return_setence_isi)
+
+        # # transform cvector & tfidf
+        transform_cvec = cvec.transform([return_setence_isi])
+        transform_tfidf = tfidf.transform(transform_cvec)
+        print(transform_tfidf)
+        # predict start
+        predic_result = model.predict(transform_tfidf)
+        print(predic_result)
+
+        tweet.append(isi)
+        clean_text.append(return_setence_isi)
+        clas.append(predic_result)
+
+    df['tweet'] = tweet
+    df['clean_text'] = clean_text
+    df['class'] = clas
+    df['class'] = df['class'].apply(Klasifikasi_NB.convert1)
+    df['polaritas'] = df['class'].apply(Klasifikasi_NB.convert2)
+
+    sentiment_count = df['class'].value_counts()
+    sentiment_count = pd.DataFrame({'Sentiment': sentiment_count.index, 'Tweets': sentiment_count.values})
+
+    # random sentiment tweet
+    random_pos = df.loc[df['polaritas'] == 'positif'].sample(n=2, replace = True)
+    context['pos_uname'] = random_pos['username'].to_string(index=False)
+    context['pos_date'] = random_pos['date'].to_string(index=False)
+    context['pos_tweet'] = random_pos['tweet'].to_string(index=False)
+    json_records = random_pos.reset_index().to_json(orient = 'records')
+    data = []
+    data = json.loads(json_records)
+    context['p'] = data 
+
+    random_net = df.loc[df['polaritas'] == 'netral'].sample(n=2, replace = True)
+    context['net_uname'] = random_net['username'].to_string(index=False)
+    context['net_date'] = random_net['date'].to_string(index=False)
+    context['net_tweet'] = random_net['tweet'].to_string(index=False)
+    json_records = random_net.reset_index().to_json(orient = 'records')
+    data = []
+    data = json.loads(json_records)
+    context['net'] = data 
+
+    random_neg = df.loc[df['polaritas'] == 'negatif'].sample(n=2, replace = True)
+    context['neg_uname'] = random_neg['username'].to_string(index=False)
+    context['neg_date'] = random_neg['date'].to_string(index=False)
+    context['neg_tweet'] = random_neg['tweet'].to_string(index=False)
+    json_records = random_neg.reset_index().to_json(orient = 'records')
+    data = []
+    data = json.loads(json_records)
+    context['neg'] = data 
+
+    # bar
+    graph = px.bar(sentiment_count, x='Sentiment', y='Tweets', color='Tweets', height=500)
+    graph.update_layout(font_color="#e6e6e6", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    div_bar = opy.plot(graph, output_type='div')
+    context['bar'] = div_bar
+
+    # pie
+    fig_2 = px.pie(sentiment_count, values='Tweets', names='Sentiment')
+    fig_2.update_layout(font_color="#e6e6e6", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', hoverlabel=dict(font=dict(family='sans-serif')))
+    div_pie = opy.plot(fig_2, output_type='div')
+    context['pie'] = div_pie
+
+    # bar-bar
+    choice_data = df
+    print(choice_data)
+    fig_0 = px.histogram(choice_data, x='keyword', y='polaritas',
+        histfunc='count', color='polaritas',
+        facet_col='polaritas', labels={'polaritas': 'tweets'},
+        height=500)
+    fig_0.update_layout(font_color="#e6e6e6", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    div_fig0 = opy.plot(fig_0, output_type='div')
+    context['fig0'] = div_fig0
+    
+    # # wordcloud
+    # w = ' '.join([text for text in df['clean_text'][df['polaritas'] == -1]])
+    # wordcloud = WordCloud(stopwords=STOPWORDS, width=800, height=500, background_color="black", random_state=21, max_font_size=110).generate(w)
+    # plt.imshow(wordcloud, interpolation='bilinear')
+    # plt.axis("off")
+    # buffer = io.BytesIO()
+    # plt.savefig(buffer, format='png', facecolor='k', bbox_inches='tight')
+    # buffer.seek(0)
+    # strings = base64.b64encode(buffer.getvalue())
+    # buffer.close()
+    # image_64 = strings.decode('utf-8')
+    # context['wc_1'] = image_64
 
     html_template = loader.get_template( 'index.html' )
     return HttpResponse(html_template.render(context, request))
 
-@login_required(login_url="/login/")
+#@login_required(login_url="/login/")
 def pages(request):
     context = {}
     # All resource paths end in .html.
@@ -95,7 +229,7 @@ def pages(request):
         html_template = loader.get_template( 'page-500.html' )
         return HttpResponse(html_template.render(context, request))
 
-@login_required(login_url="/login/")
+#@login_required(login_url="/login/")
 def scraping(request):
     context = {}
     context['segment'] = 'scraping'
@@ -103,7 +237,7 @@ def scraping(request):
     html_template = loader.get_template( 'scraping.html' )
     return HttpResponse(html_template.render(context, request))
 
-@login_required(login_url="/login/")
+#@login_required(login_url="/login/")
 def scrape(request):
     context = {}
     context['segment'] = 'scraping'
@@ -121,13 +255,18 @@ def scrape(request):
     filterKey = " -filter:retweets"
     Scraping_Twitter.authenticate(consumer_key, consumer_secret, access_token, access_token_secret)
     try:
-        global key
-        key = context['key'] = Scraping_Twitter.search_twitter(keywords, counts)
-        
-        # tweets = tweepy.Cursor(api.search, q=keywords + filterKey, lang="id", tweet_mode='extended').items(counts)
+        global key, df
+        key = tweepy.Cursor(api.search, q=keywords + filterKey, lang="in", tweet_mode='extended').items(int(counts))
+        json_data = [r._json for r in key]
+        df = pd.json_normalize(json_data)
+        df['keyword'] = keywords
+        df['created_at'] = df['created_at'].astype('datetime64[ns]')
+        df.rename(columns={'cre8ated_at':'date','user.profile_image_url':'photo','user.screen_name':'username','full_text':'tweet'}, inplace=True)
+        print(df)
+
         global tw
         tw = context['tw'] = tweepy.Cursor(api.search, q=keywords + filterKey, lang="in", tweet_mode='extended').items(int(counts))
-        
+    
     except tweepy.TweepError as e:
         print("Tweepy error: {}".format(e), e.reason)
         context['tweepy_error'] = "Tweepy error: {}".format(e)
@@ -139,24 +278,16 @@ def scrape(request):
     html_template = loader.get_template( 'scraping.html' )
     return HttpResponse(html_template.render(context, request))
 
-@login_required(login_url="/login/")
+#@login_required(login_url="/login/")
 def download_scrape(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="dataScrape.csv"'
     
-    writer = csv.writer(response, lineterminator='\n')
-    writer.writerow(['keyword','date', 'photo', 'username', 'tweet'])
-    key = Scraping_Twitter.search_twitter(keywords, counts)
-    for tweet in key:
-        writer.writerow((keywords,
-                    tweet.created_at,
-                    tweet.user.profile_image_url,
-                    tweet.user.screen_name,
-                    tweet.full_text))
-        
+    header = ['keyword','date', 'photo', 'username', 'tweet']
+    df[header].to_csv(path_or_buf=response,index=False)    
     return response
 
-@login_required(login_url="/login/")
+#@login_required(login_url="/login/")
 def preprocessing(request):
     context = {}
     context['segment'] = 'Preprocessing'
@@ -202,7 +333,7 @@ def download_preprocessing(request):
     
     return response
 
-@login_required(login_url="/login/")
+#@login_required(login_url="/login/")
 def klasifikasi(request):
     context = {}
     context['segment'] = 'Klasifikasi'
@@ -255,7 +386,7 @@ def klasifikasi(request):
             context['density'] = "density: {}".format((density))
 
             # splite data
-            x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+            x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
             # clasification data
             nb = MultinomialNB()
             nb.fit(x_train, y_train)
@@ -283,7 +414,10 @@ def klasifikasi(request):
             cm = confusion_matrix(y_test, predic,labels=unique_label)
             matrix = pd.DataFrame(cm, index=['{:}'.format(x) for x in unique_label],
                                 columns=['{:}'.format(x) for x in unique_label])
-            matrix.rename(columns={'1':'pos','0':'net','-1':'neg'}, inplace=True)
+            matrix.rename(
+                columns={'1':'pos','0':'net','-1':'neg'},
+                index={'1':'positif','0':'netral','-1':'negatif'}, inplace=True)
+            
             print(matrix)
             json_records = matrix.reset_index().to_json(orient = 'records')
             data = []
@@ -296,7 +430,7 @@ def klasifikasi(request):
     html_template = loader.get_template( 'klasifikasi.html' )
     return HttpResponse(html_template.render(context, request))
 
-@login_required(login_url="/login/")
+#@login_required(login_url="/login/")
 def visualize(request):
     context = {}
     context['segment'] = 'Visualisasi'
@@ -347,6 +481,7 @@ def visualize(request):
 
     # bar-bar
     choice_data = df
+    print(choice_data)
     fig_0 = px.histogram(choice_data, x='keyword', y='class',
         histfunc='count', color='class',
         facet_col='class', labels={'class': 'tweets'},
@@ -371,7 +506,7 @@ def visualize(request):
     html_template = loader.get_template( 'visualize.html' )
     return HttpResponse(html_template.render(context, request))
 
-@login_required(login_url="/login/")
+#@login_required(login_url="/login/")
 def model_predic(request):
     context = {}
     context['segment'] = 'Model Predic'
@@ -430,11 +565,13 @@ def model_predic(request):
             df['tweet'] = tweet
             df['clean_text'] = clean_text
             df['class'] = clas
+            df['class'] = df['class'].apply(Klasifikasi_NB.convertToPolarity)
             result = pd.concat([df['keyword'],df['date'],df['photo'],df['username'],df['tweet'],df['clean_text'],df['class'] ], axis=1, join='inner')
             # to json
             json_records = result.reset_index().to_json(orient = 'records')
             data = []
             data = json.loads(json_records)
+            print(df)
             context['predic'] = data 
             
     else:
@@ -447,9 +584,8 @@ def visualisasi(request):
     context = {}
     context['segment'] = 'Visualisasi'
 
-    df['polaritas'] = df['class'].apply(Klasifikasi_NB.convertToPolarity)
-    df['polaritas'] = df['polaritas'].astype(str)
-    df['class'] = df['class'].apply(Klasifikasi_NB.convert1)
+    df['polaritas'] = df['class'].astype(str)
+    df['class'] = df['class'].apply(Klasifikasi_NB.convert)
     global sentiment_count
     sentiment_count = df['polaritas'].value_counts()
     sentiment_count = pd.DataFrame({'Sentiment': sentiment_count.index, 'Tweets': sentiment_count.values})
@@ -493,9 +629,10 @@ def visualisasi(request):
     fig_2.update_layout(font_color="#e6e6e6", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', hoverlabel=dict(font=dict(family='sans-serif')))
     div_pie = opy.plot(fig_2, output_type='div')
     context['pie'] = div_pie
-
+    
     # bar-bar
     choice_data = df
+    print(choice_data)
     fig_0 = px.histogram(choice_data, x='keyword', y='polaritas',
         histfunc='count', color='polaritas',
         facet_col='polaritas', labels={'polaritas': 'tweets'},
