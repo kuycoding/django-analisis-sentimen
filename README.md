@@ -1,5 +1,5 @@
 # django-analisis-sentimen
-Analisis sentimen with algoritm naive bayes
+Sentiment analisis with algorithm naive bayes
 > Links
 
 - [Kuycoding](https://kuycoding.com) - Blog
